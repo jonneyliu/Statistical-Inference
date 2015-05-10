@@ -1,0 +1,100 @@
+---
+title: "Course Project Tooth Growth"
+author: Jonney Liu
+output: pdf_document
+---
+First we will load ToothGrowth data which is a built in dataset in R, and the relevant libraries required to run the analysis and graphs we need for this project.
+```{r, echo=FALSE}
+library(datasets)
+library(ggplot2)
+head(ToothGrowth)
+```
+#Data Summary and Variable explanation
+```{r}
+# explore the data, see column names, dimension & sample data of initial rows
+dim(ToothGrowth) # 60 observations
+unique(ToothGrowth$supp) #shows the different classifications of supp which is 'VC & 'OJ'
+unique(ToothGrowth$dose) #shows the different dosages used for each supplement (0.5, 1 & 2 mg)
+
+#find the mean and sd of the data sorted into supp then dose
+tapply(ToothGrowth$len,list(ToothGrowth$supp, ToothGrowth$dose), FUN=mean)
+tapply(ToothGrowth$len,list(ToothGrowth$supp, ToothGrowth$dose), FUN=sd)
+
+```
+From the summary above and descriptions using ?ToothGrowth we can see that ToothGrowth provides data on the length of teeth in each of the 10 guinea pigs at 3 different dose levels (0.5, 1, & 2mg) with two delivery methods (OJ or VC) making up 60 observations:
+
+* Len: Length of teeth 
+* Supp: Delivery Method VC or OJ (2 unique values)
+* Dose: Dosage of supplement 0.5, 1 or 2mg (3 unique values)
+
+Next we will plot the data with the y-axis as *len* with dose levels and supplement type split 
+
+```{r, echo=FALSE, fig.height = 3}
+ggplot(aes(x=dose, y = len), data = ToothGrowth) + 
+    geom_point(size = 5,aes(color = supp)) + facet_grid(. ~ supp)
+
+# t.test(len ~ supp, data = ToothGrowth)$conf.int
+```
+
+From the graph we can see vaguely see that at low dose levels (0.5mg), the 'OJ' delivery method looks to be more effective than VC compared to at higher dosage level (2mg). We can also see that for both supplement types, higher doses tends to lead to large *len* values. In order to confirm this we will run various hypothesis tests (t-tests due to small sample size) in the subsequent sections
+
+#Hypothesis Testing
+**Test 1: t-test by supplement**
+H0: Supplement has no effect on length of teeth. Confidence interval contains 0, cannot reject H0
+```{r}
+t.test(len ~ supp, paired = F, var.equal = F, data = ToothGrowth)$conf.int
+
+```
+**Test 2: t-test by dose irrespective of supplement delivery method**
+
+We will run 3 tests as follows:
+
+* H0 - difference between 0.5 and 1mg dosage  has no effect on length of teeth.
+* H0 - difference between 0.5 and 2mg dosage has no effect on length of teeth.
+* H0 - difference between 1 and 2 mg has no effect on length of teeth.
+```{r}
+t.test(ToothGrowth[ToothGrowth$dose == 0.5,1], ToothGrowth[ToothGrowth$dose == 1,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+t.test(ToothGrowth[ToothGrowth$dose == 0.5,1], ToothGrowth[ToothGrowth$dose == 2,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+t.test(ToothGrowth[ToothGrowth$dose == 1,1], ToothGrowth[ToothGrowth$dose == 2,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+```
+* Confidence interval does not contain 0 for mean 0.5mg vs mean 1mg, reject null showing that increaed dose has significant difference in length.
+* Confidence interval does not contain 0 for mean 0.5mg vs mean 2mg, reject null showing that increaed dose has significant difference in length.
+* Confidence interval does not contain 0 for mean 1mg vs mean 2mg, reject null showing that increaed dose has significant difference in length.
+
+**Test 3: t-test by supplement across dose**
+
+* H0: at 0.5mg dose, there is no significant difference in length between supplement type
+* H0: at 1.0mg dose, there is no significant difference in length between supplement type
+* H0: at 2.0mg dose, there is no significant difference in length between supplement type
+```{r}
+t.test(ToothGrowth[ToothGrowth$supp == "OJ"&ToothGrowth$dose == 0.5,1], 
+       ToothGrowth[ToothGrowth$supp == "VC"&ToothGrowth$dose == 0.5,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+t.test(ToothGrowth[ToothGrowth$supp == "OJ"&ToothGrowth$dose == 1,1], 
+       ToothGrowth[ToothGrowth$supp == "VC"&ToothGrowth$dose == 1,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+t.test(ToothGrowth[ToothGrowth$supp == "OJ"&ToothGrowth$dose == 2,1], 
+       ToothGrowth[ToothGrowth$supp == "VC"&ToothGrowth$dose == 2,1], 
+       paired = FALSE, var.equal = FALSE)$conf
+```
+* Confidence interval does not contain 0 for dose level 0.5 between supplement type, reject null showing that OJ over VC has significant effect on teeth length at this dosage.
+* Confidence interval does not contain 0 for dose level 1 between supplement type, reject null showing that OJ over VC has significant effect on teeth length at this dosage.
+* Confidence interval contains 0 for dose level 2 between supplement type, cannot reject null.
+
+*Conclusion*
+
+From the hypothesis tests we have run we can conclude he following:
+
+* Supplement type across all dosage levels does not have a significant effect on length of teeth.
+* In general, higher dose levels lead to significant increases in teeth length.
+* At the 0.5 and 1mg dose levels, OJ has a significant effect over VC on teeth length, however the same cannot be said at the 2mg dose level.
+
+*Assumptions*
+
+In running these tests we have made the following assumptions:
+
+* We assume unequal variances between the separate populations that are tested
+* We assume that samples are independent, guinea pigs were chosen at random from the same population
